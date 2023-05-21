@@ -1,0 +1,213 @@
+
+
+import tkinter as tk
+from tkinter import ttk
+import os
+from datetime import datetime
+
+channels =[
+        "Moldova 1",
+        "Prime",
+        "Canal 2",
+        "Canal 3",
+        "Publika TV",
+        "Jurnal TV",
+        "Primul în Moldova",
+        "TV 8", "Moldova 2",
+        "TVR Moldova", "N4",
+        "NTV Moldova",
+        "RTR Moldova",
+        "Exclusiv TV",
+        "Mega TV",
+        "Ren Moldova",
+        "Canal 5",
+        "TVC 21",
+        "Сарафан",
+        "Familia TV",
+        "Тонус SD",
+        "Cotidianul TV",
+        "R live",
+        "Privesc.EU TV",
+        "Orhei TV", "RTVi",
+        "Рен TV", "ITV",
+        "Accent TV",
+        "TV 6",
+        "Elita TV",
+        "SOR TV",
+        "Studio L",
+        "Drochia TV",
+        "TV PRIM",
+        "Media TV",
+        "BTV",
+        "NTS",
+        "Legal TV",
+        "STV",
+        "TV-Gagauzia",
+        "Orizont TV",
+        "10 TV",
+        "TV 1000",
+        "TV 1000 Action",
+        "Киносемья",
+        "Кинохит",
+        "Кинокомедия",
+        "Мужсккое кино",
+        "Наше новое кино",
+        "Родное Кино",
+        "Paramount comedy",
+        "Paramount channel",
+        "Киноужас",
+        "Filmbox",
+        "Filmbox Artouse",
+        "TimeLess Dizi Channel",
+        "INSIGHN",
+        "CTC Premier (cinema1)",
+        "Zee TV",
+        "Discovery Channel",
+        "Discovery Science",
+        "TLC",
+        "Animal Planet",
+        "Travel Channel",
+        "Food Network",
+        "Viasat Explorer",
+        "Viasat History",
+        "Моя Планета",
+        "RT Documentary",
+        "Приключения",
+        "Живая Планета",
+        "Наука 2.0",
+        "Точка Отрыва",
+        "Живая Природа",
+        "DocuBox",
+        "Интер +",
+        "Мульт Bravo",
+        "Nickelodeon",
+        "Nick Jr.",
+        "AXIAL TV",
+        "Cartoon Network",
+        "Boomerang",
+        "Малыш",
+        "Уникум",
+        "Детский мир",
+        "Nick Toons",
+        "Gurinel TV",
+        "Охота и рыбалка",
+        "Дикий",
+        "Дикая Охота",
+        "Дикая рыбалка",
+        "Охотник и рыбалов",
+        "Усадьба",
+        "Кухня ТВ",
+        "Здоровое ТВ",
+        "В мире Животных",
+        "Travel + Adventure",
+        "Первый Космический",
+        "Рыжий", "Наша Сибирь",
+        "Арсенал"  ,
+        "Мир Вокруг",
+        "Загородный",
+        "Драив",
+        "365 Дней",
+        "КВН ТВ",
+        "Мир Увличений",
+        "Мама",
+        "Мужской" ,
+        "Глазами Туриста",
+        "Fast&FunBox",
+        "Gametoon", "FashionBox",
+        "360 TuneBox",
+        "WORLD FASHION CHANNEL HD",
+        "Шансон", "Ностальгия",
+        "Russia Today",
+        "Agro TV Moldova",
+        "EuroSport 1",
+        "EuroSport 2",
+        "M1 Global",
+        "КХЛ ТВ",
+        "Q Sport",
+        "Спортивный",
+        "Motosport.ru",
+        "Матч! Планета",
+        "Бокс ТВ",
+        "Спорт 1",
+        "Живи ТВ",
+        "FightBox",
+        "Noroc TV",
+        "Ru TV Moldova",
+        "MTV European",
+        "VH1 European",
+        "THT Music",
+        "Жара",
+        "MTV 80",
+        "MTV 90",
+        "Popas TV",
+        "Tezaur TV",
+        "Zona M",
+        "Taraf TV",
+        "Busuioc TV",
+        "Europa Plus TV",
+        "Etno TV",
+        "Speranța TV",
+        "Alfa Omega",
+        "CNL",
+        "Trinitas TV",
+        "1+1 International",
+        "CNN International",
+        "Credo",
+        "TV5 Monde Europe",
+        "Erox", "Eroxxx",
+        "Telestar 1",
+        "GN TV",
+        "Orizont TV (Romania)",
+        "Nasul TV",
+        "Emi TV",
+        "Kapital TV",
+                ]
+
+
+
+
+def save_results():
+   
+    desktop_path = os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop')
+    now = datetime.now()
+    results_folder = os.path.join(desktop_path, now.strftime('%Y-%m-%d'))
+    if not os.path.exists(results_folder):
+        os.makedirs(results_folder)
+
+    file_name = now.strftime("%H-%M-%S") + '.txt'
+
+    with open(os.path.join(results_folder, file_name), 'w', encoding='utf-8') as f:
+        for channel in channels:
+            f.write(channel + ' ' + channel_state[channel].get() + '\n')
+
+root = tk.Tk()
+root.title(" состояние каждого канала")
+
+frame = tk.Frame(root)
+frame.pack(fill='both', expand=True)
+
+canvas = tk.Canvas(frame)
+canvas.pack(side='left', fill='both', expand=True)
+
+inner_frame = tk.Frame(canvas)
+canvas.create_window((0, 0), window=inner_frame, anchor='nw')
+
+scrollbar = ttk.Scrollbar(frame, orient='vertical', command=canvas.yview)
+scrollbar.pack(side='right', fill='y')
+
+canvas.configure(yscrollcommand=scrollbar.set)
+
+channel_state = {}
+for channel in channels:
+    channel_state[channel] = tk.StringVar(value="соответствует")
+
+for channel in channels:
+    tk.Label(inner_frame, text=channel).grid(column=0, row=channels.index(channel))
+    tk.Radiobutton(inner_frame, text="соответствует", variable=channel_state[channel], value="соответствует").grid(column=1, row=channels.index(channel))
+    tk.Radiobutton(inner_frame, text="нет ЕПГ", variable=channel_state[channel], value="нет ЕПГ").grid(column=2, row=channels.index(channel))
+    tk.Radiobutton(inner_frame, text="черный экран", variable=channel_state[channel], value="черный экран").grid(column=3, row=channels.index(channel))
+
+save_button = tk.Button(root, text="Сохранить результаты", command=save_results)
+save_button.pack()
+
+root.mainloop()

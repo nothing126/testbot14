@@ -1,355 +1,172 @@
-import telebot
-import os.path
-from google.auth.transport.requests import Request
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
-import pickle
-from telebot import types
-import threading
-
-telebot.apihelper.ENABLE_MIDDLEWARE = True
-
-bot = telebot.TeleBot("5840219241:AAEBfeIlrwCH6g9ZElRe4PnJogqkV7EpHfo")
-
-user_data = {}
-
-visit = None
-number = None
-mail = None
-user_name = None
-language = None
-
-SAMPLE_RANGE_NAME = 'list1!A1:B3'
-
-
-class GoogleSheet:
-    SPREADSHEET_ID = '1O4qRSIi3wXqC87j49lIGt_U0if7oxR2rZqFuloVJXDY'
-
-    def __init__(self):
-        self.SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
-        self.service = None
-        self.lock = threading.Lock()
-        creds = None
-
-        if os.path.exists('token.pickle'):
-            with open('token.pickle', 'rb') as token:
-                creds = pickle.load(token)
-
-        if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                try:
-                    creds.refresh(Request())
-                except Exception as e1:
-                    print(e1)
-                    creds = None
-
-            if not creds:
-                print('flow')
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    'credentials.json', self.SCOPES)
-                creds = flow.run_local_server(port=0)
-                with open('token.pickle', 'wb') as token:
-                    pickle.dump(creds, token)
-        self.service = build('sheets', 'v4', credentials=creds)
-
-    def updaterangevalues(self, range_name, test_values):
-        data = [{
-            'range': range_name,
-            'values': test_values
-        }]
-        body = {
-            'valueInputOption': 'USER_ENTERED',
-            'data': data
-        }
-        try:
-            with self.lock:
-                result = self.service.spreadsheets().values().batchUpdate(spreadsheetId=self.SPREADSHEET_ID,
-                                                                          body=body).execute()
-                print('{0} cells updated.'.format(result.get('totalUpdatedCells')))
-        except Exception as e1:
-            print(e1)
-
-
-def main():
-    if user_name is not None and number is not None and mail is not None and visit is not None:
-        gs = GoogleSheet()
-
-        test_values = [
-            [user_name,
-             number,
-             mail,
-             visit]
-        ]
-        values = gs.service.spreadsheets().values().get(spreadsheetId=gs.SPREADSHEET_ID,
-                                                        range=SAMPLE_RANGE_NAME).execute().get('values', [])
-        if not values:
-            start_row = 1
-
-        else:
-            start_row = len(values) + 1
-        end_row = start_row + len(test_values) - 1
-        range_name = f"list1!A{start_row}:D{end_row}"
-        gs.updaterangevalues(range_name, test_values)
-
-
-if __name__ == '__main__':
-    main()
-
-
-@bot.message_handler(commands=["start"])
-def start(message):
-    try:
+import tkinter as tk
+import random
 
-        global language
 
-        language = message.text.strip()
-        markup = types.InlineKeyboardMarkup()
-        ru_button = types.InlineKeyboardButton("Русский", callback_data="ru")
-        en_button = types.InlineKeyboardButton("Română", callback_data="en")
-        markup.add(ru_button, en_button)
-        bot.send_message(message.chat.id, "Выберите язык / Alegeți limba de comunicare:", reply_markup=markup)
-        bot.register_next_step_handler(message, callback_query)
+def blackjack():
+    global deck, player_hand, dealer_hand, values
+    deck = create_deck()
+    random.shuffle(deck)
+    player_hand = [deal_card(), deal_card()]
+    dealer_hand = [deal_card(), deal_card()]
 
-    except Exception as err:
-        print(err)
+    values = {"Ace": 11,
+              "2": 2,
+              "3": 3,
+              "4": 4,
+              "5": 5,
+              "6": 6,
+              "7": 7,
+              "8": 8,
+              "9": 9,
+              "10": 10,
+              "Jack": 10,
+              "Queen": 10,
+              "King": 10
+              }
 
+    canvas.delete("all")
+    canvas.create_text(100, 50, text="Let's play Blackjack!")
+    print_hand("Player", player_hand)
+    canvas.create_text(100, 150, text=f"Dealer's face-up card: {dealer_hand[0]}")
 
-@bot.callback_query_handler(func=lambda call: True)
-def callback_query(callback_queryq):
-    global language
 
-    chat_id = callback_queryq.message.chat.id
+def create_deck():
+    deck = []
+    suits = ["hearts", "diamonds", "clubs", "spades"]
 
-    if callback_queryq.data == "ru":
-        language = "ru"
-        bot.send_message(chat_id, "Язык изменён на русский")
-        bot.register_next_step_handler(callback_queryq.message, get_name_ru)
-        bot.send_message(chat_id, "Привет! Как вас зовут?")
+    for suit in suits:
 
-    elif callback_queryq.data == "en":
-        language = "en"
-        bot.send_message(chat_id, "Limba schimbata la romana")
-        bot.send_message(chat_id, "Bună ziua! Introduceti numele dvs.?")
-        bot.register_next_step_handler(callback_queryq.message, get_name_ro)
+        for value in values:
+            deck.append(f"{value} of {suit}")
+    return deck
 
 
-def get_name_ru(message):
-    try:
+values = {"Ace",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7",
+          "8",
+          "9",
+          "10",
+          "Jack",
+          "Queen",
+          "King"
+          }
 
-        global user_name
 
-        name_u = message.text.strip()
-        user_name = name_u
-        chat_id = message.chat.id
-        user_data[chat_id] = {'name_U': name_u,
-                              'phone_number': None,
-                              'email': None,
-                              'visit_reason': None
-                              }
+def deal_card():
+    return random.choice(list(values))
 
-        bot.reply_to(message, f"Приятно познакомиться, {name_u}! Какова цель вашего визита?")
 
-        markup = get_visit_reason_markup_ru()
-        bot.send_message(chat_id, "Выберите причину визита:", reply_markup=markup)
+def get_hand_value(hand, values):
+    value = sum([values[card.split()[0]] for card in hand])
 
-        bot.register_next_step_handler(message, get_visit_reason_ru)
+    if value > 21 and "Ace" in hand:
+        value -= 10
+    return value
 
-    except Exception as err:
-        print(err)
 
+def print_hand(name, hand):
+    y = 150
+    canvas.create_text(230, y, text=f"{name}'s hand:", anchor="nw")
+    y += 20
 
-def get_name_ro(message):
-    try:
+    for card in hand:
+        canvas.create_text(230, y, text=card, anchor="nw")
+        y += 20
+    canvas.create_text(230, y, text=f"Value: {get_hand_value(hand, values)}", anchor="nw")
 
-        global user_name
 
-        name_u = message.text.strip()
-        user_name = name_u
-        chat_id = message.chat.id
+def add_card_to_hand(hand):
+    hand.append(deal_card())
 
-        user_data[chat_id] = {'name_U': name_u,
-                              'phone_number': None,
-                              'email': None,
-                              'visit_reason': None
-                              }
 
-        bot.reply_to(message, f"încântat de cunoştinţă, {name_u}! care este scopul vizitei dvs?",
-                     reply_markup=get_visit_reason_markup_ro())
-        bot.register_next_step_handler(message, get_visit_reason_ro)
+def new_game():
+    global hit_button, stand_button
+    blackjack()
+    hit_button.configure(state="active")
+    stand_button.configure(state="active")
 
-    except Exception as err:
-        print(err)
 
+def close_window():
+    window.destroy()
 
-def get_visit_reason_ru(message):
-    try:
 
-        global visit
-
-        visit_reason = message.text.strip()
-        visit = visit_reason
-        chat_id = message.chat.id
-        user_data[chat_id]['visit_reason'] = visit_reason
-
-        if visit_reason == "Ознакомление":
-            msg = bot.send_message(chat_id, "Вы выбрали ознакомление. Напишите ваш номер телефона.",
-                                   reply_markup=get_remove_keyboard_markup())
-            bot.register_next_step_handler(msg, get_phone_number_ru)
-
-        elif visit_reason == "Сотрудничество":
-            msg = bot.send_message(chat_id, "Вы выбрали сотрудничество. Напишите ваш номер телефона.",
-                                   reply_markup=get_remove_keyboard_markup())
-            bot.register_next_step_handler(msg, get_phone_number_ru)
-
-        else:
-            msg = bot.send_message(chat_id, "Пожалуйста, выберите один из вариантов ниже.",
-                                   reply_markup=get_visit_reason_markup_ru())
-            bot.register_next_step_handler(msg, get_visit_reason_ru)
-
-    except Exception as err:
-        print(err)
-
-
-def get_visit_reason_markup_ru():
-    markup = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
-    itembtn1 = types.KeyboardButton('Ознакомление')
-    itembtn2 = types.KeyboardButton('Сотрудничество')
-    markup.add(itembtn1, itembtn2)
-    return markup
-
-
-def get_visit_reason_ro(message):
-    try:
-
-        global visit
-
-        visit_reason = message.text.strip()
-        visit = visit_reason
-        chat_id = message.chat.id
-        user_data[chat_id]['visit_reason'] = visit_reason
-
-        if visit_reason == "familiarizarea":
-            bot.send_message(chat_id, "ati ales o familiarizarea, introduceti numarul de telefon.",
-                             reply_markup=get_remove_keyboard_markup())
-            bot.register_next_step_handler(message, get_phone_number_ro)
-
-        elif visit_reason == "cooperare":
-            bot.send_message(chat_id, "ati ales cooperarea, introduceti numarul de telefon.",
-                             reply_markup=get_remove_keyboard_markup())
-
-            bot.register_next_step_handler(message, get_phone_number_ro)
-
-        else:
-            bot.send_message(chat_id, "vă rugăm să selectați una dintre opțiunile de mai jos.",
-                             reply_markup=get_visit_reason_markup_ro())
-            bot.register_next_step_handler(message, get_visit_reason_ru)
-
-    except Exception as err:
-        print(err)
-
-
-def get_visit_reason_markup_ro():
-    markup = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
-    itembtn1 = types.KeyboardButton('familiarizarea')
-    itembtn2 = types.KeyboardButton('cooperarea')
-    markup.add(itembtn1, itembtn2)
-    return markup
-
-
-def get_remove_keyboard_markup():
-    markup = types.ReplyKeyboardRemove(selective=False)
-    return markup
-
-
-def get_phone_number_ru(message):
-    global number
-
-    phone_number = message.text.strip()
-    number = phone_number
-    if phone_number.startswith("+373 "):
-        phone_number = "+373" + phone_number[4:]
-
-    if not valid_phone_number(phone_number):
-        bot.reply_to(message, "Некорректный номер телефона, пожалуйста, введите его в формате +373xxxxxxxx.")
-        bot.register_next_step_handler(message, get_phone_number_ru)
-        return
-
-    message.phone_number = phone_number
-    chat_id = message.chat.id
-    user_data[chat_id] = {'phone_number': phone_number,
-                          'email': None
-                          }
-
-    bot.reply_to(message, f"Спасибо, я получил ваш номер телефона: {phone_number}!")
-
-    bot.reply_to(message, "Введите ваш адрес электронной почты.")
-    bot.register_next_step_handler(message, get_email_ru)
-
-
-def get_phone_number_ro(message):
-    global number
-
-    phone_number = message.text.strip()
-    number = phone_number
-    if phone_number.startswith("+373 "):
-        phone_number = "+373" + phone_number[4:]
-
-    if not valid_phone_number(phone_number):
-        bot.reply_to(message, "introducerea incorectă a numărului de telefon. "
-                              "Vă rugăm să introduceți un număr de telefon în format +373xxxxxxxx.")
-        bot.register_next_step_handler(message, get_phone_number_ru)
-        return
-
-    message.phone_number = phone_number
-    chat_id = message.chat.id
-    user_data[chat_id] = {
-        'phone_number': phone_number,
-        'email': None
-    }
-
-    bot.reply_to(message, f"Multumesc, eu primit numarul de telefon: {phone_number}!")
-
-    bot.reply_to(message, "Introduceti adresa email")
-    bot.register_next_step_handler(message, get_email_ru)
-
-
-def get_email_ru(message):
-    global mail
-
-    email = message.text.strip()
-    mail = email
-    chat_id = message.chat.id
-    user_data[chat_id]['email'] = email
-    bot.reply_to(message, f"Спасибо, я получил ваш адрес электронной почты: {email}! "
-                          "Благодарим за предоставленные данные, мы свяжемся с вами в ближайшее время.")
-    bot.register_next_step_handler(main())
-
-
-def get_email_ro(message):
-    global mail
-
-    email = message.text.strip()
-    mail = email
-    chat_id = message.chat.id
-    user_data[chat_id]['email'] = email
-    bot.reply_to(message, f"multumesc am primit adresa ta de email: {email}! "
-                          "multumim pentru informatiile oferite, va vom contacta in cel mai scurt timp posibil.")
-    bot.register_next_step_handler(main())
-
-
-def valid_phone_number(phone_number):
-    if phone_number.startswith("+373") and len(phone_number) == 12 and phone_number[1:].isdigit():
-        return True
+def hit():
+    canvas.create_rectangle(0, 0, 450, 350, fill="green")
+    add_card_to_hand(player_hand)
+    card_value = get_hand_value(player_hand, values)
+    canvas.delete("player_draw")
+    canvas.create_text(180, 320,
+                       text=f"You drew {player_hand[-1]}. (Value: {card_value})", fill="white", tags="player_draw")
+
+    print_hand("Player", player_hand)
+
+    if card_value > 21:
+        canvas.create_text(150, 300,
+                           text=f"You bust! Dealer wins. (Value: {card_value})", fill="white")
+
+        hit_button.configure(state="disabled")
+        stand_button.configure(state="disabled")
+
+
+def stand():
+    canvas.create_rectangle(0, 0, 500, 400, fill="green")
+
+    while get_hand_value(dealer_hand, values) < 17:
+        add_card_to_hand(dealer_hand)
+    dealer_value = get_hand_value(dealer_hand, values)
+    player_value = get_hand_value(player_hand, values)
+    print_hand("Dealer", dealer_hand)
+    canvas.delete("dealer_result")
+    canvas.create_text(110, 340,
+                       text=f"Dealer busts! You win. (Value: {player_value})", fill="white", tags="dealer_result")
+
+    if dealer_value > 21:
+        canvas.create_text(130, 360,
+                           text=f"Dealer busts! You win. (Value: {player_value})", fill="white")
+
+    elif dealer_value == player_value:
+        canvas.create_text(200, 320,
+                           text=f"It's a tie! (Value: {player_value})", fill="white")
+
+    elif dealer_value > player_value:
+        canvas.create_text(160, 270,
+                           text=f"Dealer wins! (Value: {player_value})", fill="white")
 
     else:
-        return False
+        canvas.create_text(230, 300,
+                           text=f"You win! (Value: {player_value})", fill="white")
+
+    print_hand("Dealer", dealer_hand)
+    hit_button.configure(state="disabled")
+    stand_button.configure(state="disabled")
 
 
-while True:
+window = tk.Tk()
+window.title("Blackjack")
 
-    try:
 
-        bot.polling(none_stop=True)
+new_game_button = tk.Button(window, text="New Game", command=new_game)
+new_game_button.pack()
 
-    except Exception as e:
-        print(e)
+
+close_button = tk.Button(window, text="Close", command=close_window)
+close_button.pack()
+
+hit_button = tk.Button(window, text="Hit", command=hit, state="disabled")
+hit_button.pack(side="left")
+
+
+stand_button = tk.Button(window, text="Stand", command=stand, state="disabled")
+stand_button.pack(side="left")
+
+
+canvas = tk.Canvas(window, width=500, height=400, bg="green")
+canvas.pack()
+
+
+window.mainloop()
